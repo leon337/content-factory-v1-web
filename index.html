@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Content Factory V1 · Cloud</title>
+<style>
+:root{--bg:#07111d;--panel:#0b1b2b;--line:#24425d;--text:#eef7ff;--muted:#8fa8bf;--ok:#2ad99b;--danger:#ff7b7b;--accent:#168cff}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+body{padding:18px}.app{max-width:1180px;margin:auto}.top,.card{border:1px solid var(--line);border-radius:14px;background:var(--panel)}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:16px;margin-bottom:14px}
+.brand{display:flex;gap:11px;align-items:center}.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#168cff,#7657ff);display:grid;place-items:center;font-weight:900}.brand h1{font-size:19px;margin:0}.brand p{font-size:12px;color:var(--muted);margin:3px 0 0}
+.badge{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:7px 10px}.ok{color:var(--ok)}.muted{color:var(--muted)}.danger{color:var(--danger)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{padding:16px}.wide{grid-column:1/-1}.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.head h2{font-size:16px;margin:0}.head p{font-size:11px;color:var(--muted);margin:4px 0 0}
+input,button{font:inherit}input{width:100%;background:#06111f;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:11px 12px}button{border:0;border-radius:9px;padding:10px 12px;background:var(--accent);color:white;font-weight:700;cursor:pointer}button.secondary{background:#10283d;border:1px solid var(--line)}button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px}.row>*{flex:1}.row select{width:100%;background:#06111f;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:11px 12px}.stat{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #19324a;font-size:11px}.stat:last-child{border-bottom:0}.stat b{font-size:14px}
+.notice{margin-top:10px;padding:10px;border-radius:9px;background:#06111f;border:1px solid var(--line);font-size:11px;white-space:pre-wrap}.list{max-height:260px;overflow:auto}.item{padding:9px 0;border-bottom:1px solid #19324a;font-size:11px}.item:last-child{border-bottom:0}.item strong{display:block}.small{font-size:10px;color:var(--muted)}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="brand"><div class="logo">CF</div><div><h1>Content Factory V1</h1><p>Cloud-first control surface · notebook fora do caminho operacional</p></div></div>
+  <div id="stateBadge" class="badge muted">Verificando cloud…</div>
+</header>
+
+<main class="grid">
+<section class="card">
+  <div class="head"><div><h2>🔐 Acesso</h2><p>Supabase Auth · sessão do usuário</p></div><span id="authState" class="badge muted">Desconectado</span></div>
+  <div id="loginArea">
+    <div class="row"><input id="email" type="email" placeholder="seu e-mail"></div>
+    <div style="margin-top:8px"><button id="loginBtn">Enviar link de acesso</button></div>
+    <div id="loginNotice" class="notice muted">O link mágico será enviado pelo Supabase Auth.</div>
+  </div>
+  <div id="sessionArea" hidden>
+    <div class="notice"><strong id="sessionEmail"></strong><div class="small">Sessão cloud autenticada.</div></div>
+    <div style="margin-top:8px"><button class="secondary" id="logoutBtn">Sair</button></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="head"><div><h2>📲 Meta</h2><p>Facebook + Instagram · OAuth cloud</p></div><span id="metaBadge" class="badge muted">Desconectada</span></div>
+  <div id="metaConnection" class="notice muted">Nenhuma conexão Meta vinculada.</div>
+  <div style="margin-top:8px"><button id="connectMetaBtn">Conectar Meta</button></div>
+</section>
+
+<section class="card">
+  <div class="head"><div><h2>☁️ Data Plane</h2><p>Estado persistente remoto</p></div><span id="cloudBadge" class="badge muted">—</span></div>
+  <div class="stat"><span>API cloud</span><b id="apiState">—</b></div>
+  <div class="stat"><span>Banco</span><b>Supabase Postgres</b></div>
+  <div class="stat"><span>Arquivos</span><b>Supabase Storage</b></div>
+  <div class="stat"><span>Jobs</span><b>Duráveis</b></div>
+</section>
+
+<section class="card wide">
+  <div class="head"><div><h2>🏢 Workspace</h2><p>Primeiro objeto operacional totalmente persistente na cloud</p></div><button class="secondary" id="refreshBtn">Atualizar</button></div>
+  <div class="row"><input id="workspaceName" placeholder="Nome do workspace"><button id="createWorkspaceBtn">Criar workspace</button></div>
+  <div id="workspaceNotice" class="notice muted">Faça login para consultar ou criar workspaces.</div>
+  <div id="workspaces" class="list" style="margin-top:8px"></div>
+</section>
+
+<section class="card wide">
+  <div class="head"><div><h2>✨ Gerador de cartão Cloud</h2><p>Renderização no navegador · sem Gemini/Electron</p></div><span class="badge ok">CLOUD</span></div>
+  <div class="row">
+    <input id="genTitle" placeholder="Título do cartão">
+    <input id="genTopic" placeholder="Tema">
+  </div>
+  <div class="row" style="margin-top:8px">
+    <input id="genSubtitle" placeholder="Texto secundário (opcional)">
+    <input id="genCta" placeholder="CTA" value="Saiba mais">
+  </div>
+  <div class="row" style="margin-top:8px">
+    <select id="genWorkspace"></select>
+    <input id="genBrand" placeholder="Marca" value="PredixAI BR">
+    <button id="generateCardBtn">Gerar cartão</button>
+  </div>
+  <div id="genNotice" class="notice muted">O cartão é renderizado no navegador e salvo diretamente no Storage cloud.</div>
+  <div id="generatedPreviewWrap" class="notice" hidden>
+    <img id="generatedPreview" alt="Prévia do cartão gerado" style="display:block;width:min(360px,100%);height:auto;border-radius:10px;border:1px solid var(--line);margin:auto">
+  </div>
+</section>
+
+<section class="card wide">
+  <div class="head"><div><h2>☁️ Novo conteúdo</h2><p>Criação e mídia diretamente na infraestrutura cloud</p></div></div>
+  <div class="row"><input id="uploadTitle" placeholder="Título do conteúdo"><select id="uploadWorkspace"></select></div>
+  <div class="row" style="margin-top:8px"><input id="uploadFile" type="file" accept="image/*,video/*,audio/*"><button id="uploadBtn">Enviar para a cloud</button></div>
+  <div id="uploadNotice" class="notice muted">Escolha um workspace, informe o título e selecione um arquivo.</div>
+</section>
+
+<section class="card">
+  <div class="head"><div><h2>🧠 Conteúdo</h2><p>Persistência cloud</p></div><span id="contentCount" class="badge muted">0</span></div>
+  <div id="contentList" class="list"><div class="small">Nenhum item carregado.</div></div>
+</section>
+
+<section class="card">
+  <div class="head"><div><h2>📚 Biblioteca</h2><p>Índice persistente</p></div><span id="libraryCount" class="badge muted">0</span></div>
+  <div id="libraryList" class="list"><div class="small">Nenhum item carregado.</div></div>
+</section>
+
+<section class="card">
+  <div class="head"><div><h2>📤 Publicações</h2><p>Estado + idempotência</p></div><span id="publicationCount" class="badge muted">0</span></div>
+  <div id="publicationList" class="list"><div class="small">Nenhum item carregado.</div></div>
+</section>
+
+<section class="card">
+  <div class="head"><div><h2>⚙️ Jobs</h2><p>Fila durável</p></div><span id="jobCount" class="badge muted">0</span></div>
+  <div id="jobList" class="list"><div class="small">Nenhum item carregado.</div></div>
+</section>
+
+<section class="card wide">
+  <div class="head"><div><h2>🎯 Estado da missão</h2><p>MCF-CONTENT-FACTORY-V1-NOTEBOOK-INDEPENDENCE-001</p></div></div>
+  <div class="notice">P0 ✅ inventário · P1 ✅ arquitetura · P2 ✅ Data Plane · P3 ✅ superfície cloud · P4 ✅ worker durável · P5 ✅ OAuth Meta · P6 ✅ geração no navegador
+Próximos marcos: claim autenticado do acervo → publicação Meta real → cutover definitivo.</div>
+</section>
+</main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+const SUPABASE_URL = 'https://ypocndnfbujvxwglrnzc.supabase.co'
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2yo812P-ReLcOX9sd8jchA_rQBz8QCW'
+const API_URL = SUPABASE_URL + '/functions/v1/content-factory-api'
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+
+const $ = (id) => document.getElementById(id)
+
+async function callApi(path, options = {}) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('Faça login para acessar a API cloud.')
+  const response = await fetch(API_URL + path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': 'Bearer ' + session.access_token,
+      ...(options.headers || {}),
+    },
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(payload.error || 'API cloud respondeu HTTP ' + response.status)
+  return payload
+}
+
+function renderList(target, items, emptyText, mapItem) {
+  if (!items?.length) {
+    $(target).innerHTML = '<div class="small">' + emptyText + '</div>'
+    return
+  }
+  $(target).innerHTML = items.map(mapItem).join('')
+}
+
+async function refreshCloud() {
+  try {
+    const data = await callApi('/workspaces')
+    $('apiState').textContent = 'OK'
+    $('apiState').className = 'ok'
+    $('cloudBadge').textContent = 'CONECTADA'
+    $('cloudBadge').className = 'badge ok'
+    $('workspaceNotice').textContent = data.workspaces.length
+      ? 'Workspaces carregados da cloud.'
+      : 'Nenhum workspace criado ainda.'
+    renderList('workspaces', data.workspaces, 'Nenhum workspace.', x =>
+      '<div class="item"><strong>' + escapeHtml(x.name) + '</strong><div class="small">' + x.id + '</div></div>'
+    )
+    const workspaceOptions=data.workspaces.length
+      ? data.workspaces.map(x => '<option value="' + x.id + '">' + escapeHtml(x.name) + '</option>').join('')
+      : '<option value="">Nenhum workspace</option>'
+    $('uploadWorkspace').innerHTML=workspaceOptions
+    $('genWorkspace').innerHTML=workspaceOptions
+
+    const [connections, content, library, publications, jobs] = await Promise.all([
+      callApi('/connections'),
+      callApi('/content'),
+      callApi('/library'),
+      callApi('/publications'),
+      callApi('/jobs'),
+    ])
+
+    const meta=(connections.connections ?? []).find(x=>x.provider==='meta')
+    $('metaBadge').textContent = meta?.status === 'active' ? 'CONECTADA' : 'Desconectada'
+    $('metaBadge').className = 'badge ' + (meta?.status === 'active' ? 'ok' : 'muted')
+    $('metaConnection').textContent = meta?.status === 'active'
+      ? (meta.display_name + ' · conta ' + meta.external_account_id)
+      : 'Nenhuma conexão Meta vinculada.'
+
+    $('contentCount').textContent = content.items.length
+    $('libraryCount').textContent = library.items.length
+    $('publicationCount').textContent = publications.publications.length
+    $('jobCount').textContent = jobs.jobs.length
+
+    renderList('contentList', content.items, 'Nenhum conteúdo.', x =>
+      '<div class="item"><strong>' + escapeHtml(x.title) + '</strong><div class="small">' + escapeHtml(x.type) + ' · ' + escapeHtml(x.id) + '</div></div>'
+    )
+    renderList('libraryList', library.items, 'Nenhum item na biblioteca.', x =>
+      '<div class="item"><strong>' + escapeHtml(x.title) + '</strong><div class="small">' + escapeHtml(x.item_type) + ' · ' + escapeHtml(x.id) + '</div></div>'
+    )
+    renderList('publicationList', publications.publications, 'Nenhuma publicação.', x =>
+      '<div class="item"><strong>' + escapeHtml(x.channel) + ' · ' + escapeHtml(x.status) + '</strong><div class="small">' + escapeHtml(x.idempotency_key) + '</div>' +
+      ((['draft','scheduled','failed'].includes(x.status) && ['instagram','facebook'].includes(x.channel))
+        ? '<div style="margin-top:7px"><button class="queueBtn secondary" data-publication-id="' + escapeHtml(x.id) + '">Enfileirar</button></div>'
+        : '') +
+      '</div>'
+    )
+    renderList('jobList', jobs.jobs, 'Nenhum job.', x =>
+      '<div class="item"><strong>' + escapeHtml(x.kind) + ' · ' + escapeHtml(x.status) + '</strong><div class="small">' + escapeHtml(x.dedupe_key) + '</div></div>'
+    )
+  } catch (error) {
+    $('apiState').textContent = 'AUTH'
+    $('apiState').className = 'danger'
+    $('cloudBadge').textContent = 'LOGIN'
+    $('cloudBadge').className = 'badge muted'
+    $('workspaceNotice').textContent = error.message
+  }
+}
+
+async function signIn() {
+  const email = $('email').value.trim()
+  if (!email) {
+    $('loginNotice').textContent = 'Informe um e-mail.'
+    return
+  }
+  $('loginBtn').disabled = true
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin }
+    })
+    if (error) throw error
+    $('loginNotice').textContent = 'Link enviado. Abra o e-mail para concluir o acesso.'
+  } catch (error) {
+    $('loginNotice').textContent = error.message
+  } finally {
+    $('loginBtn').disabled = false
+  }
+}
+
+async function claimMigration() {
+  try {
+    const result=await callApi('/bootstrap/claim-migration',{method:'POST',body:'{}'})
+    if(result?.claimed && !result?.already_claimed){
+      $('workspaceNotice').textContent='Acervo migrado para este usuário na cloud: ' +
+        result.library_items + ' itens, ' + result.publications + ' publicações, ' +
+        result.media_assets + ' mídias.'
+    }
+    return result
+  } catch (error) {
+    console.warn('migration claim skipped', error.message)
+    return null
+  }
+}
+
+async function uploadAsset() {
+  const workspaceId=$('uploadWorkspace').value
+  const title=$('uploadTitle').value.trim()
+  const file=$('uploadFile').files?.[0]
+  if(!workspaceId || !title || !file){
+    $('uploadNotice').textContent='Workspace, título e arquivo são obrigatórios.'
+    return
+  }
+  $('uploadBtn').disabled=true
+  $('uploadNotice').textContent='Enviando mídia para a cloud…'
+  try {
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_')
+    const storageKey=workspaceId+'/images/'+crypto.randomUUID()+'-'+safeName
+    const {error:uploadError}=await supabase.storage.from('content-factory-media').upload(storageKey,file,{
+      contentType:file.type || 'application/octet-stream',
+      upsert:false,
+    })
+    if(uploadError) throw uploadError
+    const content=await callApi('/content',{
+      method:'POST',
+      body:JSON.stringify({workspace_id:workspaceId,type:'media',title,brief:{filename:file.name,mime_type:file.type,bytes:file.size}})
+    })
+    const digestBuffer=await crypto.subtle.digest('SHA-256',await file.arrayBuffer())
+    const checksum=Array.from(new Uint8Array(digestBuffer),b=>b.toString(16).padStart(2,'0')).join('')
+    const asset=await callApi('/media-assets',{
+      method:'POST',
+      body:JSON.stringify({
+        workspace_id:workspaceId,
+        content_item_id:content.item.id,
+        storage_key:storageKey,
+        mime_type:file.type || 'application/octet-stream',
+        bytes:file.size,
+        checksum
+      })
+    })
+    await callApi('/library',{
+      method:'POST',
+      body:JSON.stringify({
+        workspace_id:workspaceId,
+        content_item_id:content.item.id,
+        media_asset_id:asset.asset.id,
+        item_type:'media',
+        title,
+        metadata:{filename:file.name,mime_type:file.type}
+      })
+    })
+    $('uploadNotice').textContent='Conteúdo + mídia + Biblioteca gravados na cloud.'
+    $('uploadTitle').value=''
+    $('uploadFile').value=''
+    await refreshCloud()
+  } catch(error) {
+    $('uploadNotice').textContent='Falha: '+error.message
+  } finally {
+    $('uploadBtn').disabled=false
+  }
+}
+
+async function renderCardPng({title,topic,subtitle,cta,brand,width=1080,height=1080}) {
+  const canvas=document.createElement('canvas')
+  canvas.width=width
+  canvas.height=height
+  const ctx=canvas.getContext('2d')
+  if(!ctx) throw new Error('Canvas 2D indisponível neste navegador.')
+
+  const margin=120
+  const wrap=(text,font,maxWidth,maxLines=6)=>{
+    ctx.font=font
+    const words=String(text||'').trim().split(/\\s+/).filter(Boolean)
+    if(!words.length) return []
+    const lines=[]
+    let line=words[0]
+    for(const word of words.slice(1)){
+      const candidate=line+' '+word
+      if(ctx.measureText(candidate).width<=maxWidth) line=candidate
+      else { lines.push(line); line=word }
+    }
+    lines.push(line)
+    return lines.slice(0,maxLines)
+  }
+
+  const gradient=ctx.createLinearGradient(0,0,0,height)
+  gradient.addColorStop(0,'#07111d')
+  gradient.addColorStop(1,'#14283e')
+  ctx.fillStyle=gradient
+  ctx.fillRect(0,0,width,height)
+
+  ctx.fillStyle='#7657ff'
+  ctx.beginPath()
+  ctx.arc(width-140,100,230,0,Math.PI*2)
+  ctx.fill()
+
+  ctx.fillStyle='#168cff'
+  ctx.beginPath()
+  ctx.arc(-20,height-120,190,0,Math.PI*2)
+  ctx.fill()
+
+  ctx.strokeStyle='#24425d'
+  ctx.lineWidth=3
+  const radius=34
+  ctx.beginPath()
+  ctx.roundRect(70,70,width-140,height-140,radius)
+  ctx.stroke()
+
+  ctx.fillStyle='#eef7ff'
+  ctx.font='700 34px system-ui, -apple-system, Segoe UI, sans-serif'
+  ctx.fillText(String(brand||'PredixAI BR').slice(0,40),margin,150)
+
+  ctx.fillStyle='#8fa8bf'
+  ctx.font='600 30px system-ui, -apple-system, Segoe UI, sans-serif'
+  for(const [i,line] of wrap(topic,'600 30px system-ui, -apple-system, Segoe UI, sans-serif',width-2*margin,2).entries()){
+    ctx.fillText(line,margin,208+i*40)
+  }
+
+  ctx.fillStyle='#ffffff'
+  ctx.font='700 78px system-ui, -apple-system, Segoe UI, sans-serif'
+  let y=390
+  for(const line of wrap(title,'700 78px system-ui, -apple-system, Segoe UI, sans-serif',width-2*margin,4)){
+    ctx.fillText(line,margin,y)
+    y+=96
+  }
+
+  if(String(subtitle||'').trim()){
+    y+=18
+    ctx.fillStyle='#dbeafe'
+    ctx.font='700 40px system-ui, -apple-system, Segoe UI, sans-serif'
+    for(const line of wrap(subtitle,'700 40px system-ui, -apple-system, Segoe UI, sans-serif',width-2*margin,4)){
+      ctx.fillText(line,margin,y)
+      y+=54
+    }
+  }
+
+  const label=String(cta||'Saiba mais').slice(0,50)
+  ctx.font='700 34px system-ui, -apple-system, Segoe UI, sans-serif'
+  const textWidth=ctx.measureText(label).width
+  const boxX=margin
+  const boxY=height-235
+  const boxW=textWidth+68
+  const boxH=70
+  ctx.fillStyle='#168cff'
+  ctx.beginPath()
+  ctx.roundRect(boxX,boxY,boxW,boxH,22)
+  ctx.fill()
+  ctx.fillStyle='#ffffff'
+  ctx.fillText(label,boxX+34,boxY+47)
+
+  ctx.fillStyle='#dceaf7'
+  ctx.font='600 24px system-ui, -apple-system, Segoe UI, sans-serif'
+  ctx.fillText('Content Factory V1 · cloud',margin,height-78)
+
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(resolve,'image/png',1))
+  if(!blob) throw new Error('Falha ao rasterizar o cartão em PNG.')
+  return blob
+}
+
+async function persistGeneratedCard({workspaceId,title,topic,subtitle,cta,brand}) {
+  const blob=await renderCardPng({title,topic,subtitle,cta,brand})
+  const bytes=await blob.arrayBuffer()
+  const checksumBuffer=await crypto.subtle.digest('SHA-256',bytes)
+  const checksum=Array.from(new Uint8Array(checksumBuffer),b=>b.toString(16).padStart(2,'0')).join('')
+  const storageKey=workspaceId+'/cards/'+crypto.randomUUID()+'-'+checksum.slice(0,12)+'.png'
+
+  const {error:uploadError}=await supabase.storage.from('content-factory-media').upload(storageKey,blob,{
+    contentType:'image/png',
+    upsert:false
+  })
+  if(uploadError) throw uploadError
+
+  const content=await callApi('/content',{
+    method:'POST',
+    body:JSON.stringify({
+      workspace_id:workspaceId,
+      type:'social_card',
+      title,
+      brief:{topic,subtitle,cta,brand,generator:'browser-canvas-v1',checksum}
+    })
+  })
+  const asset=await callApi('/media-assets',{
+    method:'POST',
+    body:JSON.stringify({
+      workspace_id:workspaceId,
+      content_item_id:content.item.id,
+      storage_key:storageKey,
+      mime_type:'image/png',
+      bytes:blob.size,
+      checksum
+    })
+  })
+  const library=await callApi('/library',{
+    method:'POST',
+    body:JSON.stringify({
+      workspace_id:workspaceId,
+      content_item_id:content.item.id,
+      media_asset_id:asset.asset.id,
+      item_type:'social_card',
+      title,
+      metadata:{generator:'browser-canvas-v1',checksum,topic}
+    })
+  })
+
+  return {blob,content:content.item,asset:asset.asset,library:library.item,storageKey,checksum}
+}
+
+async function generateCloudCard() {
+  const workspaceId=$('genWorkspace').value
+  const title=$('genTitle').value.trim()
+  const topic=$('genTopic').value.trim()
+  const subtitle=$('genSubtitle').value.trim()
+  const cta=$('genCta').value.trim() || 'Saiba mais'
+  const brand=$('genBrand').value.trim() || 'PredixAI BR'
+  if(!workspaceId || !title || !topic){
+    $('genNotice').textContent='Workspace, título e tema são obrigatórios.'
+    return
+  }
+  $('generateCardBtn').disabled=true
+  $('genNotice').textContent='Renderizando no navegador e salvando na cloud…'
+  try {
+    const session=(await supabase.auth.getSession()).data.session
+    if(!session?.access_token) throw new Error('Faça login para gerar conteúdo na cloud.')
+    const result=await persistGeneratedCard({workspaceId,title,topic,subtitle,cta,brand})
+
+    $('generatedPreview').src=URL.createObjectURL(result.blob)
+    $('generatedPreviewWrap').hidden=false
+    $('genNotice').textContent='Cartão gerado e salvo na Biblioteca cloud: '+result.library.title
+    $('genTitle').value=''
+    $('genTopic').value=''
+    $('genSubtitle').value=''
+    await refreshCloud()
+  } catch(error) {
+    $('genNotice').textContent='Falha na geração cloud: '+error.message
+  } finally {
+    $('generateCardBtn').disabled=false
+  }
+}
+
+
+async function connectMeta() {
+  try {
+    const result=await callApi('/connections/meta/start')
+    if(!result?.authorization_url) throw new Error('Meta não retornou a URL de autorização.')
+    window.open(result.authorization_url,'_blank','noopener,noreferrer')
+    $('metaConnection').textContent='Janela da Meta aberta. Conclua o login e depois atualize o painel.'
+  } catch(error) {
+    $('metaConnection').textContent='Falha ao iniciar Meta: '+error.message
+  }
+}
+
+async function queuePublication(publicationId, button) {
+  button.disabled=true
+  button.textContent='Enfileirando…'
+  try {
+    const result=await callApi('/publications/'+encodeURIComponent(publicationId)+'/queue',{
+      method:'POST',
+      body:'{}'
+    })
+    if(result?.already_published) {
+      button.textContent='Já publicada'
+    } else {
+      button.textContent=result?.already_queued ? 'Já na fila' : 'Enfileirada'
+    }
+    await refreshCloud()
+  } catch(error) {
+    button.disabled=false
+    button.textContent='Tentar novamente'
+    alert('Falha ao enfileirar: '+error.message)
+  }
+}
+
+
+async function createWorkspace() {
+  const name = $('workspaceName').value.trim()
+  if (!name) {
+    $('workspaceNotice').textContent = 'Informe um nome.'
+    return
+  }
+  $('createWorkspaceBtn').disabled = true
+  try {
+    const result = await callApi('/workspaces', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    })
+    $('workspaceName').value = ''
+    $('workspaceNotice').textContent = 'Workspace criado na cloud: ' + result.workspace.id
+    await refreshCloud()
+  } catch (error) {
+    $('workspaceNotice').textContent = error.message
+  } finally {
+    $('createWorkspaceBtn').disabled = false
+  }
+}
+
+async function syncSession(session) {
+  const logged = !!session?.user
+  $('authState').textContent = logged ? 'Autenticado' : 'Desconectado'
+  $('authState').className = 'badge ' + (logged ? 'ok' : 'muted')
+  $('loginArea').hidden = logged
+  $('sessionArea').hidden = !logged
+  $('sessionEmail').textContent = logged ? session.user.email : ''
+  $('stateBadge').textContent = logged ? 'Cloud autenticada' : 'Cloud pronta · login necessário'
+  $('stateBadge').className = 'badge ' + (logged ? 'ok' : 'muted')
+  if(logged) await claimMigration()
+  refreshCloud()
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[ch]))
+}
+
+$('loginBtn').addEventListener('click', signIn)
+$('logoutBtn').addEventListener('click', () => supabase.auth.signOut())
+$('refreshBtn').addEventListener('click', refreshCloud)
+$('createWorkspaceBtn').addEventListener('click', createWorkspace)
+$('uploadBtn').addEventListener('click', uploadAsset)
+$('connectMetaBtn').addEventListener('click', connectMeta)
+$('generateCardBtn').addEventListener('click', generateCloudCard)
+document.addEventListener('click', (event) => {
+  const button=event.target.closest?.('.queueBtn')
+  if(button) queuePublication(button.dataset.publicationId, button)
+})
+
+supabase.auth.onAuthStateChange((_event, session) => syncSession(session))
+const { data: { session } } = await supabase.auth.getSession()
+syncSession(session)
+</script>
+</body>
+</html>
